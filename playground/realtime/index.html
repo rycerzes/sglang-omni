@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SGLang-Omni Realtime Voice Chat</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-row">
+        <h1>Realtime Voice Chat</h1>
+        <button type="button" id="theme-toggle" class="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
+          <svg class="theme-icon theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="theme-icon theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+      <p class="subtitle">Continuous voice conversation with the model via WebSocket. Speak naturally — the model responds in real time.</p>
+    </header>
+
+    <div class="layout">
+      <!-- Left: Controls -->
+      <aside class="card controls">
+        <div class="card-title">Session</div>
+
+        <div class="control-group">
+          <button type="button" id="connect-btn" class="btn btn-primary">Connect</button>
+          <button type="button" id="disconnect-btn" class="btn btn-danger" disabled>Disconnect</button>
+        </div>
+
+        <div class="status-row">
+          <span id="status-dot" class="dot dot-disconnected"></span>
+          <span id="status-text">Disconnected</span>
+        </div>
+
+        <label for="instructions">System Instructions</label>
+        <textarea id="instructions" rows="4" placeholder="e.g., You are a helpful voice assistant. Be concise."></textarea>
+
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>Temperature</span>
+            <span id="temperature-value">0.70</span>
+          </div>
+          <input type="range" id="temperature" min="0.1" max="2" step="0.1" value="0.7" />
+        </div>
+
+        <div class="toggle-row">
+          <label class="toggle-label" for="vad-toggle">Server VAD</label>
+          <label class="switch">
+            <input type="checkbox" id="vad-toggle" checked />
+            <span class="slider-round"></span>
+          </label>
+        </div>
+
+        <button type="button" id="push-to-talk-btn" class="btn btn-ptt" disabled>
+          Hold to Talk
+        </button>
+
+        <div class="card-title" style="margin-top: 16px;">Audio Levels</div>
+        <div class="level-row">
+          <span class="level-label">In</span>
+          <div class="level-bar"><div class="level-fill" id="input-level"></div></div>
+        </div>
+        <div class="level-row">
+          <span class="level-label">Out</span>
+          <div class="level-bar"><div class="level-fill level-fill-out" id="output-level"></div></div>
+        </div>
+        <div class="queue-info" id="queue-info">Buffer: 0 ms</div>
+      </aside>
+
+      <!-- Right: Transcript -->
+      <section class="card transcript-panel">
+        <div class="card-title-row">
+          <div class="card-title">Transcript</div>
+          <button type="button" id="clear-btn" class="btn btn-ghost btn-sm">Clear</button>
+        </div>
+        <div class="transcript" id="transcript">
+          <div class="placeholder">Press <strong>Connect</strong> to start a voice session.</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
