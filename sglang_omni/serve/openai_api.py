@@ -49,6 +49,7 @@ from sglang_omni.serve.protocol import (
     ModelList,
     UsageResponse,
 )
+from sglang_omni.serve.realtime.api import register_realtime
 
 logger = logging.getLogger(__name__)
 MIME_TO_FORMAT = {mime: fmt for fmt, mime in FORMAT_MIME_TYPES.items()}
@@ -90,6 +91,7 @@ def create_app(
     _register_models(app)
     _register_chat_completions(app)
     _register_speech(app)
+    register_realtime(app)
 
     return app
 
