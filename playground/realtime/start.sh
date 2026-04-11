@@ -29,9 +29,11 @@ done
 
 if [[ ${#BACKEND_ARGS[@]} -eq 0 ]]; then
   echo "Usage: $0 --model-path <model> [--port SERVER_PORT] [--playground-port PLAYGROUND_PORT]"
+  echo "       $0 --config <config.yaml> [--port SERVER_PORT] [--playground-port PLAYGROUND_PORT]"
   echo ""
   echo "Example:"
   echo "  CUDA_VISIBLE_DEVICES=5 $0 --model-path Qwen/Qwen3-Omni-30B-A3B-Instruct"
+  echo "  $0 --config examples/configs/cascaded_tts.yaml"
   exit 1
 fi
 

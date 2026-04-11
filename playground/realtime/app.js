@@ -274,8 +274,9 @@
       // Base64-encoded PCM16 audio chunk.
       if (event.delta && playbackNode) {
         const bytes = base64ToArrayBuffer(event.delta);
-        playbackNode.port.postMessage({ type: "audio", pcm16: bytes }, [bytes]);
+        // Update level BEFORE postMessage, which transfers (detaches) the buffer.
         updateLevel(outputLevel, bytes);
+        playbackNode.port.postMessage({ type: "audio", pcm16: bytes }, [bytes]);
       }
       return;
     }
