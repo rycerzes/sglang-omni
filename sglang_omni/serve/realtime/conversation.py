@@ -17,12 +17,15 @@ class ContentPart:
         text: Text content (for text parts).
         audio: Base64-encoded audio data (for audio parts).
         transcript: Transcript of audio content.
+        audio_array: Raw float32 numpy array at the session sample rate
+            (internal only — not serialised to the client).
     """
 
     type: str = "input_audio"
     text: str | None = None
     audio: str | None = None
     transcript: str | None = None
+    audio_array: Any = None  # np.ndarray | None — kept server-side only
 
     def to_dict(self) -> dict[str, Any]:
         d: dict[str, Any] = {"type": self.type}
@@ -161,7 +164,6 @@ class Conversation:
             for part in item.content:
                 if part.type in ("input_text", "text") and part.text:
                     content_parts.append(part.text)
-                # Audio is passed via metadata, not inline in messages.
             if content_parts:
                 messages.append(
                     {"role": item.role, "content": content_parts[0]}
@@ -170,3 +172,22 @@ class Conversation:
                 # Audio-only user turn — use empty content, audio via metadata.
                 messages.append({"role": item.role, "content": ""})
         return messages
+
+    def collect_input_audio(self) -> list[Any]:
+        """Return raw audio arrays from the most recent user turn only.
+
+        The arrays are float32 numpy arrays at the session sample rate.
+        Only the last user turn is returned — previous turns' audio is
+        stale and should not be re-transcribed.
+        """
+        # Walk backwards to find the last user message.
+        for item in reversed(self._items):
+            if item.type != "message" or item.role != "user":
+                continue
+            arrays: list[Any] = []
+            for part in item.content:
+                if part.type == "input_audio" and part.audio_array is not None:
+                    arrays.append(part.audio_array)
+            if arrays:
+                return arrays
+        return []

@@ -203,7 +203,8 @@ class RealtimeSession:
         )
         self._active_response = resp
         messages = self._conversation.to_messages()
-        await resp.start(messages)
+        input_audios = self._conversation.collect_input_audio()
+        await resp.start(messages, input_audios=input_audios or None)
 
     async def _handle_response_cancel(self, data: dict[str, Any]) -> None:
         if self._active_response and self._active_response.is_active:
@@ -259,7 +260,7 @@ class RealtimeSession:
             type="message",
             role="user",
             status="completed",
-            content=[ContentPart(type="input_audio")],
+            content=[ContentPart(type="input_audio", audio_array=audio)],
         )
         self._conversation.append(item)
 

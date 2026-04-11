@@ -83,9 +83,21 @@ class ResponseController:
     def done(self) -> bool:
         return self._done
 
-    async def start(self, messages: list[dict[str, Any]]) -> None:
-        """Begin generating a response for the given conversation history."""
+    async def start(
+        self,
+        messages: list[dict[str, Any]],
+        input_audios: list[Any] | None = None,
+    ) -> None:
+        """Begin generating a response for the given conversation history.
+
+        Args:
+            messages: Conversation messages.
+            input_audios: Optional list of raw float32 numpy audio arrays
+                from committed input audio buffers.  These are passed to
+                the pipeline via ``GenerateRequest.metadata``.
+        """
         self._request_id = uuid.uuid4().hex
+        self._input_audios = input_audios
         self._task = asyncio.get_running_loop().create_task(
             self._run(messages), name=f"response-{self.response_id}"
         )
@@ -134,6 +146,10 @@ class ResponseController:
             for m in messages:
                 msg_list.append(Message(role=m["role"], content=m.get("content", "")))
 
+            metadata: dict[str, Any] = {}
+            if self._input_audios:
+                metadata["audios"] = self._input_audios
+
             request = GenerateRequest(
                 model=self._model,
                 messages=msg_list,
@@ -141,6 +157,7 @@ class ResponseController:
                 stream=True,
                 max_tokens=self._max_tokens,
                 output_modalities=self._modalities,
+                metadata=metadata,
             )
 
             # Emit response.created.
