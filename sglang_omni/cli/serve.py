@@ -19,9 +19,9 @@ def serve(
         typer.Option(
             help="The Hugging Face model ID or the path to the model directory."
         ),
-    ],
+    ] = None,
     config: Annotated[
-        str, typer.Option(help="Path to a pipeline config JSON file.")
+        str, typer.Option(help="Path to a pipeline config YAML/JSON file.")
     ] = None,
     text_only: Annotated[
         bool,
@@ -51,6 +51,10 @@ def serve(
     # --- Resolve config ---
     if config:
         config_manager = ConfigManager.from_file(config)
+    elif model_path is None:
+        raise typer.BadParameter(
+            "Either --model-path or --config must be provided."
+        )
     elif text_only:
         config_manager = ConfigManager.from_model_path(model_path, variant="text")
     else:
@@ -60,7 +64,8 @@ def serve(
     # we do expect the extra arguments to be pairs of names and values
     extra_args = config_manager.parse_extra_args(ctx.args)
     merged_config = config_manager.merge_config(extra_args)
-    merged_config = merged_config.model_copy(update={"model_path": model_path})
+    if model_path is not None:
+        merged_config = merged_config.model_copy(update={"model_path": model_path})
 
     # print merged configuration
     print("=" * 20, "Merged Configuration", "=" * 20)

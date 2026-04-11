@@ -266,7 +266,14 @@ class Client:
     def _build_omni_request(request: GenerateRequest) -> OmniRequest:
         inputs = _extract_inputs(request)
         params = _build_params(request)
-        metadata = dict(request.metadata)
+        # Copy metadata but exclude media keys that have already been
+        # serialized into ``inputs`` by _extract_inputs().  Keeping
+        # the raw numpy arrays in metadata would cause msgpack to fail.
+        metadata = {
+            k: v
+            for k, v in request.metadata.items()
+            if k not in ("audios", "images", "videos")
+        }
         if request.model:
             metadata.setdefault("model", request.model)
         if request.output_modalities:
@@ -402,15 +409,38 @@ def _extract_inputs(request: GenerateRequest) -> Any:
     # If we have any media, return a dict with messages and media
     # Otherwise, return just the messages list (for backward compatibility)
     if audios or images or videos:
-        result = {"messages": messages}
+        result: dict[str, Any] = {"messages": messages}
         if images:
             result["images"] = images
         if audios:
-            result["audios"] = audios
+            result["audios"] = _serialize_audio_arrays(audios)
         if videos:
             result["videos"] = videos
         return result
     return messages
+
+
+def _serialize_audio_arrays(audios: list[Any]) -> list[Any]:
+    """Make audio items msgpack-serializable.
+
+    Numpy arrays are converted to ``{"bytes", "shape", "dtype"}`` dicts.
+    Strings (file paths / URLs from the OpenAI API) are passed through
+    unchanged since they are already serializable.
+    """
+    import numpy as np
+
+    serialized: list[Any] = []
+    for item in audios:
+        if isinstance(item, np.ndarray):
+            serialized.append({
+                "bytes": item.astype(np.float32).tobytes(),
+                "shape": list(item.shape),
+                "dtype": "float32",
+            })
+        else:
+            # Strings, dicts, or other already-serializable types.
+            serialized.append(item)
+    return serialized
 
 
 def _build_params(request: GenerateRequest) -> dict[str, Any]:
