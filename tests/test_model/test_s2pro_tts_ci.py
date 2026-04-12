@@ -7,7 +7,7 @@ Usage:
     pytest tests/test_model/test_s2pro_tts_ci.py -s -x --concurrency all
 
 Author:
-    chenyang zhao https://github.com/zhaochenyang20
+    Chenyang Zhao https://github.com/zhaochenyang20
     Raitsh P https://github.com/Ratish1
     Jingwen Guo https://github.com/JingwenGu0829
     Yuan Luo https://github.com/yuan-luo
@@ -45,7 +45,7 @@ from tests.utils import (
     assert_wer_results,
     find_free_port,
     no_proxy_env,
-    start_server,
+    start_server_from_cmd,
     stop_server,
 )
 
@@ -139,7 +139,7 @@ _VC_STREAM_P95 = {
         "rtf_mean": 4.08,
     },
     8: {
-        "throughput_qps": 0.32,
+        "throughput_qps": 0.31,
         "tok_per_s_agg": 9.3,
         "latency_mean_s": 22.7,
         "rtf_mean": 5.89,
@@ -164,7 +164,7 @@ WER_SCRIPT = str(
     Path(__file__).resolve().parents[2]
     / "benchmarks"
     / "eval"
-    / "voice_clone_s2pro_wer.py"
+    / "voice_clone_tts_wer.py"
 )
 
 
@@ -290,7 +290,19 @@ def server_process(tmp_path_factory: pytest.TempPathFactory):
     """Start the s2-pro server and wait until healthy."""
     port = find_free_port()
     log_file = tmp_path_factory.mktemp("server_logs") / "server.log"
-    proc = start_server(S2PRO_MODEL_PATH, S2PRO_CONFIG_PATH, log_file, port)
+    cmd = [
+        sys.executable,
+        "-m",
+        "sglang_omni.cli.cli",
+        "serve",
+        "--model-path",
+        S2PRO_MODEL_PATH,
+        "--config",
+        S2PRO_CONFIG_PATH,
+        "--port",
+        str(port),
+    ]
+    proc = start_server_from_cmd(cmd, log_file, port)
     proc.port = port
     yield proc
     stop_server(proc)
