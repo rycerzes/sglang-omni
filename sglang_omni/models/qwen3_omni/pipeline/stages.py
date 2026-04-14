@@ -344,14 +344,19 @@ def create_sglang_thinker_executor_from_config(
     thinker_max_seq_len: int = 8192,
     server_args_overrides: dict[str, Any] | None = None,
     speech_enabled: bool = False,
+    **kwargs: Any,
 ) -> EngineExecutor:
     """Create a SGLang thinker executor from JSON-serializable config args.
 
     This keeps pipeline config args plain dict types while still constructing
-    a typed ServerArgs object internally.
+    a typed ServerArgs object internally.  Any extra *kwargs* are merged into
+    *server_args_overrides* so that CLI flags such as
+    ``--stages.4.executor.args.mem_fraction_static 0.9`` work without
+    requiring an explicit ``server_args_overrides`` dict.
     """
+    merged_overrides = {**(server_args_overrides or {}), **kwargs}
     server_args = build_sglang_server_args(
-        model_path, context_length=thinker_max_seq_len, **(server_args_overrides or {})
+        model_path, context_length=thinker_max_seq_len, **merged_overrides
     )
     return create_sglang_thinker_executor(
         server_args=server_args,
@@ -594,10 +599,17 @@ def create_talker_ar_executor_from_config(
     weight_prefix: str = "talker.",
     feedback_enabled: bool = False,
     feedback_mailbox=None,
+    **kwargs: Any,
 ) -> EngineExecutor:
-    """Create a Talker AR executor from config args."""
+    """Create a Talker AR executor from config args.
+
+    Any extra *kwargs* are merged into *server_args_overrides* so that CLI
+    flags such as ``--stages.6.executor.args.talker_max_seq_len 512`` work
+    without requiring an explicit ``server_args_overrides`` dict.
+    """
+    merged_overrides = {**(server_args_overrides or {}), **kwargs}
     server_args = build_sglang_server_args(
-        model_path, context_length=talker_max_seq_len, **(server_args_overrides or {})
+        model_path, context_length=talker_max_seq_len, **merged_overrides
     )
     return create_talker_ar_executor(
         server_args=server_args,

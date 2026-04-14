@@ -299,19 +299,26 @@ def create_sglang_thinker_executor_from_config(
     gpu_id: int = 0,
     thinker_max_seq_len: int = 8192,
     server_args_overrides: dict[str, Any] | None = None,
+    **kwargs: Any,
 ) -> EngineExecutor:
-    """Create a SGLang thinker executor from JSON-serializable config args."""
+    """Create a SGLang thinker executor from JSON-serializable config args.
+
+    Any extra *kwargs* are merged into *server_args_overrides* so that CLI
+    flags such as ``--stages.4.executor.args.mem_fraction_static 0.9`` work
+    without requiring an explicit ``server_args_overrides`` dict.
+    """
     import logging as _log
 
+    merged_overrides = {**(server_args_overrides or {}), **kwargs}
     _log.getLogger(__name__).info(
         "create_sglang_thinker_executor_from_config: server_args_overrides=%s",
-        server_args_overrides,
+        merged_overrides,
     )
     _ensure_ming_config_registered(model_path)
     # Use local snapshot path so AutoConfig finds our patched files
     local_path = _resolve_local_model_path(model_path)
     server_args = build_sglang_server_args(
-        local_path, context_length=thinker_max_seq_len, **(server_args_overrides or {})
+        local_path, context_length=thinker_max_seq_len, **merged_overrides
     )
     _log.getLogger(__name__).info(
         "ServerArgs: cpu_offload_gb=%s, mem_fraction_static=%s",

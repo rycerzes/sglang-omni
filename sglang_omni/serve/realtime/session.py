@@ -200,6 +200,7 @@ class RealtimeSession:
             modalities=self._config.modalities,
             max_tokens=self._config.max_response_output_tokens,
             voice=self._config.voice,
+            input_audio_sample_rate=self._config.input_audio_sample_rate,
         )
         self._active_response = resp
         messages = self._conversation.to_messages()

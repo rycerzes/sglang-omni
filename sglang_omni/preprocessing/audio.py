@@ -244,6 +244,18 @@ async def ensure_audio_list_async(
             else:
                 # Local path - can be loaded synchronously
                 normalized.append(load_audio_path(item, target_sr=target_sr))
+        elif isinstance(item, dict) and "bytes" in item and "shape" in item:
+            # Serialized numpy array from _serialize_audio_arrays() —
+            # deserialize and resample if the source rate is known.
+            raw = item["bytes"]
+            if not isinstance(raw, bytes):
+                raw = bytes(raw)
+            arr = np.frombuffer(raw, dtype=np.dtype(item.get("dtype", "float32")))
+            arr = arr.reshape(item["shape"]).copy()
+            src_rate = item.get("sample_rate")
+            if src_rate and src_rate != target_sr:
+                arr = _resample_linear(arr, int(src_rate), target_sr)
+            normalized.append(arr)
         else:
             # Already processed (numpy array, etc.)
             normalized.append(item)

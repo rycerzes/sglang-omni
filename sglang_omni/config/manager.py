@@ -53,16 +53,26 @@ class ConfigManager:
         Convert the configuration to the inferred data types.
         """
         for key, value in extra_args.items():
+            if not isinstance(value, str):
+                # Already converted (e.g. from a YAML file)
+                continue
             if value.lower() == "true":
                 extra_args[key] = True
             elif value.lower() == "false":
                 extra_args[key] = False
             elif value.lower() == "none":
                 extra_args[key] = None
-            elif value.isnumeric():
-                extra_args[key] = float(value) if "." in value else int(value)
             else:
-                extra_args[key] = value
+                # Try int first, then float, then leave as str.
+                # str.isnumeric() only handles positive integers and misses
+                # floats like "0.90" or negative numbers, so use try/except.
+                try:
+                    extra_args[key] = int(value)
+                except ValueError:
+                    try:
+                        extra_args[key] = float(value)
+                    except ValueError:
+                        extra_args[key] = value
         return extra_args
 
     def merge_config(self, extra_args: dict[str, Any]) -> PipelineConfig:

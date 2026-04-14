@@ -53,6 +53,7 @@ class ResponseController:
         modalities: list[str] | None = None,
         max_tokens: int | None = None,
         voice: str = "default",
+        input_audio_sample_rate: int = 24000,
     ) -> None:
         self.response_id = response_id or f"resp_{uuid.uuid4().hex[:24]}"
         self._client = client
@@ -64,6 +65,7 @@ class ResponseController:
         self._max_tokens = max_tokens
         self._voice = voice
 
+        self._input_audio_sample_rate = input_audio_sample_rate
         self._request_id: str = ""
         self._task: asyncio.Task[None] | None = None
         self._cancelled = False
@@ -148,7 +150,11 @@ class ResponseController:
 
             metadata: dict[str, Any] = {}
             if self._input_audios:
+                # Tag with the session sample rate so the pipeline's
+                # audio preprocessing can resample to the model's expected
+                # rate (e.g. 16 kHz for Qwen3-Omni's Whisper encoder).
                 metadata["audios"] = self._input_audios
+                metadata["audio_sample_rate"] = self._input_audio_sample_rate
 
             request = GenerateRequest(
                 model=self._model,
@@ -243,12 +249,17 @@ class ResponseController:
                         )
                     )
 
-                # Some models provide transcript as text alongside audio.
+                # Emit transcript only when there is no dedicated text
+                # modality — i.e. the output is audio-only and the model
+                # also produces a textual representation of what it speaks.
+                # When both text AND audio are requested (Qwen3-Omni default),
+                # the text stream is already emitted as response.text.delta
+                # above; sending it again here would double-count it.
                 if (
                     chunk.modality == "text"
                     and chunk.text
+                    and text_content_idx is None
                     and audio_content_idx is not None
-                    and "audio" in self._modalities
                 ):
                     self._transcript_accum += chunk.text
                     await self._send(

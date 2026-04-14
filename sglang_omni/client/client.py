@@ -413,17 +413,20 @@ def _extract_inputs(request: GenerateRequest) -> Any:
         if images:
             result["images"] = images
         if audios:
-            result["audios"] = _serialize_audio_arrays(audios)
+            audio_sr = request.metadata.get("audio_sample_rate")
+            result["audios"] = _serialize_audio_arrays(audios, sample_rate=audio_sr)
         if videos:
             result["videos"] = videos
         return result
     return messages
 
 
-def _serialize_audio_arrays(audios: list[Any]) -> list[Any]:
+def _serialize_audio_arrays(audios: list[Any], sample_rate: int | None = None) -> list[Any]:
     """Make audio items msgpack-serializable.
 
-    Numpy arrays are converted to ``{"bytes", "shape", "dtype"}`` dicts.
+    Numpy arrays are converted to ``{"bytes", "shape", "dtype", "sample_rate"}``
+    dicts.  *sample_rate* is embedded so that the receiving end can resample
+    to the model's expected rate if needed.
     Strings (file paths / URLs from the OpenAI API) are passed through
     unchanged since they are already serializable.
     """
@@ -432,11 +435,14 @@ def _serialize_audio_arrays(audios: list[Any]) -> list[Any]:
     serialized: list[Any] = []
     for item in audios:
         if isinstance(item, np.ndarray):
-            serialized.append({
+            d: dict[str, Any] = {
                 "bytes": item.astype(np.float32).tobytes(),
                 "shape": list(item.shape),
                 "dtype": "float32",
-            })
+            }
+            if sample_rate is not None:
+                d["sample_rate"] = sample_rate
+            serialized.append(d)
         else:
             # Strings, dicts, or other already-serializable types.
             serialized.append(item)
